@@ -1,0 +1,17 @@
+# Secrets — never commit (hotspot name + password)
+wifi.conf
+*.secret
+*.secrets
+
+# Recordings and logs copied off the Pi
+*.mp4
+*.h264
+clips/
+locked/
+logs/
+
+# OS / editor noise
+.DS_Store
+*.swp
+.vscode/
+.idea/

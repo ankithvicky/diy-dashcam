@@ -1,0 +1,11 @@
+# Copy this file to  wifi.conf  (same folder as setup-dashcam.sh) and fill it in.
+# wifi.conf is in .gitignore — it must NEVER be committed.
+#
+# The installer copies it to /etc/dashcam-wifi.conf (readable by root only) and
+# creates the Pi's own Wi-Fi hotspot from it. Re-run the installer after changing it.
+#
+# Rules:
+#   * keep the single quotes (they let the password contain # and spaces)
+#   * password: 8 to 63 characters
+HOTSPOT_SSID='my-dashcam'
+HOTSPOT_PASS='change-me-please'
