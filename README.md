@@ -10,7 +10,7 @@ Raspberry Pi, a 175° camera, a GPS and an accelerometer.
 - 🩺 Health logging: start-up time, heat, power dips, GPS drops, SD errors, power cuts.
 - 🧰 **One installer script** (like EC2 user-data): flash a card, run it, done.
 
-> Status (Oct 2026): v8. The hardware works on the bench and the software is installed. The first car trial is next.
+> Status (Oct 2026): v9. The hardware and software work; the first live drive was done. Open items: car power supply, mounting position, GPS while driving (see `docs/HANDOFF.md`).
 
 **Repo:**
 - `setup-dashcam.sh`: the installer, and the only source of truth
@@ -232,6 +232,7 @@ Change a setting with `dashcam config set KEY VALUE`. Re-running the installer k
 | `HOTSPOT_CHANNEL` | 36 | 5 GHz channel (2.4 GHz always uses 6) |
 | `WIFI_COUNTRY` | IN | Wi-Fi regulatory country |
 | `WIFI_HOME_WAIT_SEC` | 25 | How long to look for home Wi-Fi before starting the hotspot |
+| `CAMERA_ROTATION` | 0 | `180` if the camera is mounted upside down; the picture is turned back upright by the sensor itself, with no CPU cost |
 
 The hotspot **name and password** are not here. They're in `/etc/dashcam-wifi.conf` (root only), which comes from your `wifi.conf`.
 
@@ -262,6 +263,9 @@ The hotspot **name and password** are not here. They're in `/etc/dashcam-wifi.co
 | SSH dropped after `dashcam wifi hotspot` | Expected. Join the hotspot and run `ssh <user>@10.42.0.1` |
 | "REMOTE HOST IDENTIFICATION HAS CHANGED" | `ssh-keygen -R dashcam.local` |
 | `double free or corruption` when rpicam stops | Harmless; the clips are fine |
+| Video is upside down | `dashcam config set CAMERA_ROTATION 180` (applies from the next clip) |
+| Under-voltage only in the car | Weak or noisy car charger, or a thin cable. Check `dashcam status`; see HANDOFF §8.2 |
+| GPS fixes outdoors but not while driving | Often electrical noise from the car charger, or a poor antenna spot. Test the drive on a power bank (never leave it in the car) |
 | Installer stops | Look for `!! setup FAILED at line N: <command>` and fix that line |
 
 ## 12. Security notes
@@ -283,6 +287,7 @@ The hotspot **name and password** are not here. They're in `/etc/dashcam-wifi.co
 
 ## 14. Changelog
 
+- **v9**: `CAMERA_ROTATION` setting (0 or 180) for a camera mounted upside down.
 - **v8**:
   - Phone access: the Pi's own Wi-Fi hotspot (5 GHz, automatic 2.4 GHz fallback), with automatic home/hotspot switching through the `dashcam-wifi` service and `dashcam wifi auto|home|hotspot`.
   - Read-only guest SMB shares `clips` and `locked`.

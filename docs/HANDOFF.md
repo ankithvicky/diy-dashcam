@@ -12,11 +12,12 @@
 | Item | Status |
 |---|---|
 | Hardware | Assembled and working on the bench; has been in the car (front only) |
-| Software | **v8** installer (`setup-dashcam.sh`) installed and running on the Pi: recording, crash lock, rotation, health logs, **own Wi-Fi hotspot**, **read-only SMB shares** |
+| Software | **v9** installer (`setup-dashcam.sh`): recording, crash lock, rotation, health logs, **own Wi-Fi hotspot**, **read-only SMB shares**, `CAMERA_ROTATION` (v9). The Pi runs v8; v9 is not yet deployed |
+| **Live drive (27 Oct)** | Found 4 problems (§8.5): **video upside down** (fixed in v9); **dash position misses close-by two-wheeler plates** (move to behind the rear-view mirror); **under-voltage + throttling on the Duracell car charger, all the time**; **GPS: 14 visible / 0 used while driving**, though it fixes outdoors on a power bank |
 | Phone access | Hotspot works (a phone joined: "1 device connected"). Clip playback in the iPhone Files app over SMB **not yet confirmed** |
-| GPS | **Fixed on 27 Oct**: a fix 46 s after boot (hot start), 12–13 satellites visible, clock set from GPS. But the fix is **marginal**: only 4 used, and it briefly flickers to "no fix". An **active antenna** is still recommended for the car (§8.1) |
+| GPS (bench) | **Fixed on 27 Oct**: a fix 46 s after boot (hot start), 12–13 satellites visible, clock set from GPS. But the fix is **marginal**: only 4 used, and it briefly flickers to "no fix". An **active antenna** is still recommended for the car (§8.1) |
 | Other open issues | One 22 s power loss in the car; one false-looking jolt lock at boot; `REC_GAP` events that look like false positives (code bug suspected, §8.3); jumper wires come loose with vibration |
-| Repo | `main` = v8 (commit `f74d54b`) + this handoff. Push straight to `main` (single contributor) |
+| Repo | `main` = v9 + this handoff. Push straight to `main` (single contributor) |
 
 ---
 
@@ -114,7 +115,7 @@ Antenna: **ceramic (tan) side up**. The MPU must be stuck down **rigidly**, or r
 
 ---
 
-## 6. Software (v8) — architecture and decisions
+## 6. Software (v9) — architecture and decisions
 
 ### 6.1 Repo layout
 ```
@@ -222,6 +223,7 @@ HOTSPOT stays on until power-off (a broadcasting radio can't scan).
 - GPS: `GPS_DEVICE=/dev/serial0 GPS_SET_CLOCK=1 GPS_LOST_SEC=10`
 - Logs and heat: `LOG_KEEP_DAYS=30 LOGS_MAX_MB=200 EVENTS_MAX_MB=5 TEMP_HIGH_C=70 TEMP_CRIT_C=80`
 - Wi-Fi (v8): `HOTSPOT_BAND=a HOTSPOT_CHANNEL=36 WIFI_COUNTRY=IN WIFI_HOME_WAIT_SEC=25`
+- Camera mounting (v9): `CAMERA_ROTATION=0` (0 or 180). It's passed to `rpicam-vid --rotation`, so the sensor flips the image with no CPU cost. Other values are refused and logged; it records unrotated. **Decision:** a setting rather than a hard-coded value, because the orientation may change when the unit moves to the mirror
 
 `dashcam config set KEY VALUE` restarts the recording services. For `HOTSPOT_*` / `WIFI_*` keys it restarts `dashcam-wifi`; the new hotspot settings apply the next time the hotspot starts.
 
@@ -297,8 +299,18 @@ Next actions:
 
 ---
 
+### 8.5 First live drive (27 Oct) — findings and open decisions
+
+| # | Finding | Diagnosis | Decision / next step |
+|---|---|---|---|
+| 1 | **Video upside down** | Camera mounted inverted | **Fixed in v9.** Deploy, then `dashcam config set CAMERA_ROTATION 180` |
+| 2 | **Lower part of the scene missing.** A close two-wheeler's plate isn't visible | A low dash position means the bonnet and dash edge block the near, low area. Plates of nearby bikes and scooters sit there | **Mount high, centred, behind the IRVM** (the standard dashcam spot). It also gives a better GPS sky view and less direct sun. **Owner to choose** between: **(A)** move the *whole unit* behind the mirror, with only power running up (needs the power fix in #3 first, because a longer 5 V cable makes under-voltage worse); or **(B)** keep the Pi low and move only the camera, using an **Arducam CSI-to-HDMI extension kit** (camera 22-pin → existing 22→15 ribbon → module → HDMI cable, up to 3–5 m → module → 15-pin → Pi; ≈ ₹1,590 for 2 modules + an HDMI cable). Plain long ribbons are 15-to-15 pin and won't fit the camera's 22-pin socket without a coupler; long flat ribbons are also fragile and pick up noise. Recommendation: **(A)** if the case fits behind the mirror, else **(B)**. Tilt the lens slightly down so the bonnet edge is just visible |
+| 3 | **Duracell charger: `UNDER-VOLTAGE right now` + `throttled` constantly** | The recommended charger (or the Portronics cable) can't hold ≥ 4.63 V under load. The cable also showed dips at home on the Xiaomi charger (`0x50000`/`0xd0000`), so the cable is a suspect too. Under-voltage risks dropped frames and SD-card corruption | **Isolate first** (fresh boot, 5 min each, `vcgencmd get_throttled`): Xiaomi wall + old cable (known good) / Xiaomi + Portronics / Duracell + old cable / Duracell's other port. Then replace the bad part. Lasting fix for the mirror mount: run **12 V** to the mirror (a fuse-tap hardwire kit, installable at a car-accessory shop) and use a small **12 V→5.1 V 3 A buck converter** next to the Pi with a short, thick micro-USB lead. Voltage drop on the 12 V side is negligible |
+| 4 | **GPS: 14 visible / 0 used while driving**; fixes outdoors on a power bank, and the very first fix (25 Oct) was in the car on a power bank | "Visible" = predicted from stored orbits; "used" = actually received. Strongest hypothesis: **electrical noise from the car charger** (cheap switching chargers radiate near the GPS frequency) **plus** under-voltage ripple, and a poor antenna spot low on the dash | **One decisive test:** drive 10 min with the Pi on the **power bank** (attended, take it out afterwards). If GPS works, the charger is the culprit, and the fix for #3 likely fixes #4. Either way: antenna at the top of the windshield, away from charger and cable; active antenna if still weak |
+
 ## 9. Roadmap (priority order)
 
+0. **Live-drive fixes (§8.5):** deploy v9 + `CAMERA_ROTATION 180`; isolate the under-voltage (charger vs cable); power-bank drive test for GPS; owner decides on the mirror mount (A: whole unit + 12 V buck, or B: CSI-to-HDMI camera extension).
 1. **GPS margin:** it gets a fix now, but with only 4 satellites. Check in the car under the windshield. If it still drops, add an active antenna + adapter. Consider a `GPS_FLICKER` event (fix lost <10 s), so marginal reception shows in reports.
 2. **Secure the wiring:** hot glue the jumpers, tape the u.FL joint, rigid MPU mount.
 3. **Power:** fresh-boot check on the car charger (`dashcam status`, `dashcam restarts`); find the 22 s dropout.

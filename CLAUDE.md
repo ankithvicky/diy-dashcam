@@ -6,7 +6,7 @@ state, open problems and the roadmap. This file is the short list of rules.
 ## What this is
 A front dashcam for incident capture on a Raspberry Pi 3 B+: an IMX219 175° camera, a NEO-6M GPS and
 an MPU-6050. The whole system is built by **one idempotent installer**, `setup-dashcam.sh`
-(currently **v8**). README.md is the user guide.
+(currently **v9**). README.md is the user guide.
 
 ## Rules
 1. **`setup-dashcam.sh` is the only source of truth.** Every program (`record.sh`, `sensors.py`,
@@ -35,6 +35,7 @@ an MPU-6050. The whole system is built by **one idempotent installer**, `setup-d
    - heat, power and short-circuit safety first
 
 ## Current priorities (details in HANDOFF §8–9)
+0. **Live drive (27 Oct), HANDOFF §8.5:** under-voltage on the car charger (isolate charger vs cable); GPS 0 used while driving (power-bank drive test, charger noise suspected); mirror-mount decision pending (whole unit + 12 V buck, or CSI-to-HDMI camera extension); deploy v9 + `CAMERA_ROTATION 180`.
 1. **GPS fix is marginal** (fixed 27 Oct; 4 used / 12 visible, flickers): check in the car; active antenna + u.FL→SMA-female adapter if it still drops.
 2. Secure the loose jumpers (hot glue) and tape the antenna's u.FL joint.
 3. A 22 s in-car power dropout → fresh-boot power check.

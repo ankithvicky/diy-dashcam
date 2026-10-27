@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-#  setup-dashcam.sh  (v8) — one-shot installer for the Pi 3 B+ dashcam
+#  setup-dashcam.sh  (v9) — one-shot installer for the Pi 3 B+ dashcam
 #
 #  THIS FILE IS THE SOURCE OF TRUTH. On a freshly flashed card (Raspberry Pi
 #  Imager: hostname, user, Wi-Fi, SSH) this one command builds the whole dashcam:
@@ -34,7 +34,7 @@
 set -euo pipefail
 trap 'echo "!! setup FAILED at line $LINENO: $BASH_COMMAND" >&2' ERR
 
-VERSION=v8
+VERSION=v9
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AUTO_REBOOT=1
 ARGS=()
@@ -149,6 +149,8 @@ add_conf HOTSPOT_BAND        "a        # a = 5 GHz (faster), bg = 2.4 GHz (works
 add_conf HOTSPOT_CHANNEL     "36       # 36 for 5 GHz; 2.4 GHz always uses channel 6"
 add_conf WIFI_COUNTRY        "IN       # Wi-Fi regulatory country (needed for 5 GHz)"
 add_conf WIFI_HOME_WAIT_SEC  "25       # seconds to wait for home Wi-Fi before starting the hotspot"
+grep -q "Camera mounting" /etc/dashcam.conf || printf '\n# ---- Camera mounting (v9)\n' >> /etc/dashcam.conf
+add_conf CAMERA_ROTATION     "0        # 0 = normal, 180 = camera mounted upside down (picture is turned back upright)"
 
 # ---------- 3b. system journal: capped at 50 MB, survives reboots (to debug car trips) ----------
 mkdir -p /etc/systemd/journald.conf.d /var/log/journal
@@ -176,8 +178,14 @@ n=$(( $(cat "$STATE/session" 2>/dev/null || echo 0) + 1 ))
 echo "$n" > "$STATE/session"
 SESSION=$(printf 'S%05d' "$n")
 echo "$SESSION $(cat /proc/sys/kernel/random/boot_id)" >> "$STATE/sessions"
+# camera mounted upside down? the sensor flips the image itself (no CPU cost)
+ROT="${CAMERA_ROTATION:-0}"
+if [[ "$ROT" != 0 && "$ROT" != 180 ]]; then
+  echo "CAMERA_ROTATION=$ROT not supported (use 0 or 180) — recording unrotated"; ROT=0
+fi
 exec rpicam-vid -n -t 0 \
   --mode "$SENSOR_MODE" --width "$WIDTH" --height "$HEIGHT" --framerate "$FPS" \
+  --rotation "$ROT" \
   --bitrate "$BITRATE" --intra "$FPS" --inline \
   --segment $((SEGMENT_SEC * 1000)) \
   -o "$CLIPS_DIR/${SESSION}_%04d.h264"
