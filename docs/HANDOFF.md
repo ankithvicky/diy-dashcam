@@ -14,7 +14,7 @@
 | Hardware | Assembled and working on the bench; has been in the car (front only) |
 | Software | **v8** installer (`setup-dashcam.sh`) installed and running on the Pi: recording, crash lock, rotation, health logs, **own Wi-Fi hotspot**, **read-only SMB shares** |
 | Phone access | Hotspot works (a phone joined: "1 device connected"). Clip playback in the iPhone Files app over SMB **not yet confirmed** |
-| **Blocker** | **GPS gets no fix.** Wiring and Wi-Fi interference ruled out with data; the antenna path or sky view is weak. Next: open-sky test, then likely an **active antenna** |
+| GPS | **Fixed on 27 Oct**: a fix 46 s after boot (hot start), 12–13 satellites visible, clock set from GPS. But the fix is **marginal**: only 4 used, and it briefly flickers to "no fix". An **active antenna** is still recommended for the car (§8.1) |
 | Other open issues | One 22 s power loss in the car; one false-looking jolt lock at boot; `REC_GAP` events that look like false positives (code bug suspected, §8.3); jumper wires come loose with vibration |
 | Repo | `main` = v8 (commit `f74d54b`) + this handoff. Push straight to `main` (single contributor) |
 
@@ -251,7 +251,11 @@ HOTSPOT stays on until power-off (a broadcasting radio can't scan).
 - Boot timing: `REC_START` = **20.4 s after kernel start** (≈24 s from power). The 10–15 s target is **not met yet**.
 - The accelerometer works; `JOLT_LOCK` triggers.
 
-### 8.1 GPS: no fix (main blocker)
+### 8.1 GPS: no fix → fixed, but marginal
+
+**Update, 27 Oct 22:32:** `dashcam status` shows `FIX ✓ 4 used, 12 visible`, `GPS fix 46.0 s` after kernel start, and the clock set from GPS. Thirty seconds earlier it showed "13 visible, 4 used, no fix yet". With exactly 4 satellites (the minimum for a 3-D fix), one weak satellite dropping out loses the fix for a moment, so it flickers. The original problem was the antenna path (re-seated); the remaining issue is signal margin.
+
+History:
 Timeline and evidence:
 1. It worked on the bench before going in the case. The first fix was in a car at a window (44.5 km/h, correct location).
 2. After it went into the case and car: **blue LED never blinks** (it blinks only with a fix). `dashcam status`: "talking, no fix yet — 0 satellites visible".
@@ -295,7 +299,7 @@ Next actions:
 
 ## 9. Roadmap (priority order)
 
-1. **GPS:** open-sky test → active antenna + adapter if needed → confirm a fix and the blue LED in the car.
+1. **GPS margin:** it gets a fix now, but with only 4 satellites. Check in the car under the windshield. If it still drops, add an active antenna + adapter. Consider a `GPS_FLICKER` event (fix lost <10 s), so marginal reception shows in reports.
 2. **Secure the wiring:** hot glue the jumpers, tape the u.FL joint, rigid MPU mount.
 3. **Power:** fresh-boot check on the car charger (`dashcam status`, `dashcam restarts`); find the 22 s dropout.
 4. **Phone flow end-to-end in the car**, with the secondary phone: join hotspot → Files → `smb://10.42.0.1` → play and save a clip from `locked/`.
