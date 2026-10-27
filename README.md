@@ -12,6 +12,13 @@ Raspberry Pi, a 175° camera, a GPS and an accelerometer.
 
 > Status (Oct 2026): v8. The hardware works on the bench and the software is installed. The first car trial is next.
 
+**Repo:**
+- `setup-dashcam.sh`: the installer, and the only source of truth
+- `wifi.conf.example`: template for your private hotspot settings
+- `tools/gps-check.sh`: GPS diagnostic
+- `docs/HANDOFF.md`: full project history, decisions and open issues
+- `CLAUDE.md`: rules for AI-assisted changes
+
 ---
 
 ## Contents
